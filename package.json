@@ -17,6 +17,7 @@
   "dependencies": {
     "@genkit-ai/compat-oai": "^1.20.0",
     "@genkit-ai/google-genai": "^1.20.0",
+    "dotenv": "^17.2.3",
     "genkit": "^1.20.0"
   }
 }

@@ -1,8 +1,17 @@
 import { openAI } from '@genkit-ai/compat-oai/openai';
+import { config } from 'dotenv';
 import { genkit, z } from 'genkit';
 
+config();
+
+if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set');
+}
+
 const ai = genkit({
-    plugins: [openAI()],
+    plugins: [
+        openAI({ apiKey: process.env.OPENAI_API_KEY }),
+    ],
 });
 
 const whisper = openAI.model('whisper-1');
