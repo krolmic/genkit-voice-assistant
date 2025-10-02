@@ -1,15 +1,15 @@
 import openAI from "@genkit-ai/compat-oai/openai";
 import { type GenkitBeta } from "genkit/beta";
 
-const transcriptionModel = openAI.model('whisper-1');
+const speechToTextModel = openAI.model('whisper-1');
 
-export async function transcribeVoiceMessage(
+export async function getTextFromSpeech(
     ai: GenkitBeta,
     base64Audio: string,
     contentType: string = 'audio/mp3',
 ): Promise<string> {
     const result = await ai.generate({
-        model: transcriptionModel,
+        model: speechToTextModel,
         prompt: [
             {
                 media: {

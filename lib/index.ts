@@ -1,14 +1,19 @@
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { openAI } from '@genkit-ai/compat-oai/openai';
 import { config } from 'dotenv';
 import { z } from 'genkit';
 import { genkit } from 'genkit/beta';
 import { createChatSession, defaultSystemInstructions, deleteSession, sendMessagesToSession } from './chat.js';
-import { transcribeVoiceMessage } from './transcription.js';
+import { getTextFromSpeech } from './speech-to-text.js';
+import { getSpeechFromText } from './text-to-speech.js';
 
 config();
 
 if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not set');
+}
+if (!process.env.ELEVENLABS_API_KEY) {
+    throw new Error('ELEVENLABS_API_KEY is not set');
 }
 
 const ai = genkit({
@@ -16,6 +21,8 @@ const ai = genkit({
         openAI({ apiKey: process.env.OPENAI_API_KEY }),
     ],
 });
+
+const elevenLabsClient = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY! });
 
 export const createChatFlow = ai.defineFlow(
     {
@@ -36,9 +43,9 @@ export const createChatFlow = ai.defineFlow(
     }
 );
 
-export const sendVoiceMessageToChatFlow = ai.defineFlow(
+export const sendSpeechMessageToChatFlow = ai.defineFlow(
     {
-        name: 'sendVoiceMessageToChat',
+        name: 'sendSpeechMessageToChat',
         inputSchema: z.object({
             sessionId: z.string(),
             base64Audio: z.string(),
@@ -47,9 +54,14 @@ export const sendVoiceMessageToChatFlow = ai.defineFlow(
             maxTokens: z.number().optional(),
             temperature: z.number().optional(),
             stopSequences: z.array(z.string()).optional(),
+            generateAudio: z.boolean().optional(),
+            voiceId: z.string().optional(),
+            modelId: z.string().optional(),
         }),
         outputSchema: z.object({
             response: z.string(),
+            audioResponse: z.string().optional(),
+            audioResponseContentType: z.string().optional(),
         }),
     },
     async ({
@@ -60,10 +72,27 @@ export const sendVoiceMessageToChatFlow = ai.defineFlow(
         maxTokens,
         temperature,
         stopSequences,
+        generateAudio,
+        voiceId,
+        modelId,
     }) => {
-        const messageText = await transcribeVoiceMessage(ai, base64Audio, contentType ?? 'audio/mp3');
+        const messageText = await getTextFromSpeech(ai, base64Audio, contentType ?? 'audio/mp3');
         const chatResponse = await sendMessagesToSession(ai, sessionId, [messageText], systemInstructions, maxTokens, temperature, stopSequences);
-        return { response: chatResponse ?? '' };
+
+        let audioResponse: string | undefined;
+        let audioResponseContentType: string | undefined;
+
+        if (generateAudio) {
+            const audioResult = await getSpeechFromText(elevenLabsClient, chatResponse, voiceId, modelId);
+            audioResponse = audioResult.base64Audio;
+            audioResponseContentType = audioResult.contentType;
+        }
+
+        return {
+            response: chatResponse ?? '',
+            audioResponse,
+            audioResponseContentType,
+        };
     }
 );
 
@@ -77,9 +106,14 @@ export const sendTextMessageToChatFlow = ai.defineFlow(
             maxTokens: z.number().optional(),
             temperature: z.number().optional(),
             stopSequences: z.array(z.string()).optional(),
+            generateAudio: z.boolean().optional(),
+            voiceId: z.string().optional(),
+            modelId: z.string().optional(),
         }),
         outputSchema: z.object({
-            response: z.string(),
+            textResponse: z.string(),
+            audioResponse: z.string().optional(),
+            audioResponseContentType: z.string().optional(),
         }),
     },
     async ({
@@ -89,9 +123,26 @@ export const sendTextMessageToChatFlow = ai.defineFlow(
         maxTokens,
         temperature,
         stopSequences,
+        generateAudio,
+        voiceId,
+        modelId,
     }) => {
-        const chatResponse = await sendMessagesToSession(ai, sessionId, [messageText], systemInstructions, maxTokens, temperature, stopSequences);
-        return { response: chatResponse ?? '' };
+        const textResponse = await sendMessagesToSession(ai, sessionId, [messageText], systemInstructions, maxTokens, temperature, stopSequences);
+
+        let audioResponse: string | undefined;
+        let audioResponseContentType: string | undefined;
+
+        if (generateAudio) {
+            const audioResult = await getSpeechFromText(elevenLabsClient, textResponse, voiceId, modelId);
+            audioResponse = audioResult.base64Audio;
+            audioResponseContentType = audioResult.contentType;
+        }
+
+        return {
+            textResponse,
+            audioResponse,
+            audioResponseContentType,
+        };
     }
 );
 
@@ -109,9 +160,9 @@ export const deleteChatFlow = ai.defineFlow(
     }
 );
 
-export const transcribeVoiceMessageFlow = ai.defineFlow(
+export const getTextFromSpeechFlow = ai.defineFlow(
     {
-        name: 'transcribeVoiceMessage',
+        name: 'getTextFromSpeech',
         inputSchema: z.object({
             base64Audio: z.string(),
             contentType: z.string().optional(),
@@ -119,6 +170,24 @@ export const transcribeVoiceMessageFlow = ai.defineFlow(
         outputSchema: z.string(),
     },
     async ({ base64Audio, contentType }) => {
-        return await transcribeVoiceMessage(ai, base64Audio, contentType ?? 'audio/mp3');
+        return await getTextFromSpeech(ai, base64Audio, contentType ?? 'audio/mp3');
+    }
+);
+
+export const getSpeechFromTextFlow = ai.defineFlow(
+    {
+        name: 'getSpeechFromText',
+        inputSchema: z.object({
+            text: z.string(),
+            voiceId: z.string().optional(),
+            modelId: z.string().optional(),
+        }),
+        outputSchema: z.object({
+            base64Audio: z.string(),
+            contentType: z.string(),
+        }),
+    },
+    async ({ text, voiceId, modelId }) => {
+        return await getSpeechFromText(elevenLabsClient, text, voiceId, modelId);
     }
 );
