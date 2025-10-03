@@ -6,6 +6,7 @@ import { z } from 'genkit';
 import { genkit } from 'genkit/beta';
 import { chroma, chromaIndexerRef, chromaRetrieverRef } from 'genkitx-chromadb';
 import { createChatSession, defaultSystemInstructions, deleteSession, sendMessagesToSession } from './chat.js';
+import { extractTextFromPdf, getDocumentsFromPdf } from './pdf-extraction.js';
 import { getTextFromSpeech } from './speech-to-text.js';
 import { getSpeechFromText } from './text-to-speech.js';
 
@@ -38,6 +39,36 @@ const assistantRetriever = chromaRetrieverRef({
 });
 
 const elevenLabsClient = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY! });
+
+export const indexPdfFlow = ai.defineFlow(
+    {
+        name: 'indexPdf',
+        inputSchema: z.object({ url: z.string().describe('PDF file URL') }),
+        outputSchema: z.object({
+            documentsIndexed: z.number(),
+            error: z.string().optional(),
+        }),
+    },
+    async ({ url }) => {
+        try {
+            const documents = await getDocumentsFromPdf(ai, url);
+
+            await ai.index({
+                indexer: assistantIndexer,
+                documents,
+            });
+
+            return {
+                documentsIndexed: documents.length,
+            };
+        } catch (err) {
+            return {
+                documentsIndexed: 0,
+                error: err instanceof Error ? err.message : String(err),
+            };
+        }
+    },
+);
 
 export const createChatFlow = ai.defineFlow(
     {
@@ -204,5 +235,16 @@ export const getSpeechFromTextFlow = ai.defineFlow(
     },
     async ({ text, voiceId, modelId }) => {
         return await getSpeechFromText(elevenLabsClient, text, voiceId, modelId);
+    }
+);
+
+export const getTextFromPdfFlow = ai.defineFlow(
+    {
+        name: 'getTextFromPdf',
+        inputSchema: z.object({ url: z.string().describe('PDF file URL') }),
+        outputSchema: z.string(),
+    },
+    async ({ url }) => {
+        return await extractTextFromPdf(url);
     }
 );
