@@ -123,7 +123,17 @@ export const sendSpeechMessageToChatFlow = ai.defineFlow(
         modelId,
     }) => {
         const messageText = await getTextFromSpeech(ai, base64Audio, contentType ?? 'audio/mp3');
-        const chatResponse = await sendMessagesToSession(ai, sessionId, [messageText], systemInstructions, maxTokens, temperature, stopSequences);
+        const docs = await ai.retrieve({ retriever: assistantRetriever, query: messageText });
+        const chatResponse = await sendMessagesToSession(
+            ai,
+            sessionId,
+            [messageText],
+            systemInstructions,
+            maxTokens,
+            temperature,
+            stopSequences,
+            docs,
+        );
 
         let audioResponse: string | undefined;
         let audioResponseContentType: string | undefined;
@@ -173,7 +183,17 @@ export const sendTextMessageToChatFlow = ai.defineFlow(
         voiceId,
         modelId,
     }) => {
-        const textResponse = await sendMessagesToSession(ai, sessionId, [messageText], systemInstructions, maxTokens, temperature, stopSequences);
+        const docs = await ai.retrieve({ retriever: assistantRetriever, query: messageText });
+        const textResponse = await sendMessagesToSession(
+            ai,
+            sessionId,
+            [messageText],
+            systemInstructions,
+            maxTokens,
+            temperature,
+            stopSequences,
+            docs,
+        );
 
         let audioResponse: string | undefined;
         let audioResponseContentType: string | undefined;

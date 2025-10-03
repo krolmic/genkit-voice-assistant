@@ -2,6 +2,7 @@ import { openAI } from '@genkit-ai/compat-oai/openai';
 import { unlink } from "fs/promises";
 import { type SessionData, type SessionStore } from 'genkit';
 import { type GenkitBeta } from 'genkit/beta';
+import { Document } from 'genkit/retriever';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -76,6 +77,7 @@ export async function sendMessagesToSession(
     maxTokens?: number,
     temperature?: number,
     stopSequences?: string[],
+    documents?: Document[],
 ): Promise<string> {
     const store = new PersistentSessionStore();
     const session = await ai.loadSession(sessionId, { store });
@@ -87,6 +89,7 @@ export async function sendMessagesToSession(
             temperature: temperature ?? 0.7,
             stopSequences: stopSequences ?? [],
         },
+        docs: documents ?? [],
     });
 
     let responseText = "";
