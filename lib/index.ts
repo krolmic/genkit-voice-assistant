@@ -1,8 +1,10 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { openAI } from '@genkit-ai/compat-oai/openai';
+import { googleAI } from '@genkit-ai/google-genai';
 import { config } from 'dotenv';
 import { z } from 'genkit';
 import { genkit } from 'genkit/beta';
+import { chroma, chromaIndexerRef, chromaRetrieverRef } from 'genkitx-chromadb';
 import { createChatSession, defaultSystemInstructions, deleteSession, sendMessagesToSession } from './chat.js';
 import { getTextFromSpeech } from './speech-to-text.js';
 import { getSpeechFromText } from './text-to-speech.js';
@@ -19,7 +21,20 @@ if (!process.env.ELEVENLABS_API_KEY) {
 const ai = genkit({
     plugins: [
         openAI({ apiKey: process.env.OPENAI_API_KEY }),
+        chroma([
+            {
+                collectionName: 'assistant-collection',
+                embedder: googleAI.embedder('gemini-embedding-001'),
+            },
+        ]),
     ],
+});
+
+const assistantIndexer = chromaIndexerRef({
+    collectionName: 'assistant-collection',
+});
+const assistantRetriever = chromaRetrieverRef({
+    collectionName: 'assistant-collection',
 });
 
 const elevenLabsClient = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY! });
