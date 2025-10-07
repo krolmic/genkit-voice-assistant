@@ -6,7 +6,7 @@ import { z } from 'genkit';
 import { genkit } from 'genkit/beta';
 import { chroma, chromaIndexerRef, chromaRetrieverRef } from 'genkitx-chromadb';
 import { createChatSession, defaultSystemInstructions, deleteSession, sendMessagesToSession } from './chat.js';
-import { extractTextFromPdf, getDocumentsFromPdf } from './pdf-extraction.js';
+import { extractTextFromPdf, extractTextFromPdfBuffer, getDocumentsFromPdf, getDocumentsFromPdfBuffer } from './pdf-extraction.js';
 import { getTextFromSpeech } from './speech-to-text.js';
 import { getSpeechFromText } from './text-to-speech.js';
 
@@ -40,9 +40,9 @@ const assistantRetriever = chromaRetrieverRef({
 
 const elevenLabsClient = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY! });
 
-export const indexPdfFlow = ai.defineFlow(
+export const indexPdfFromUrlFlow = ai.defineFlow(
     {
-        name: 'indexPdf',
+        name: 'indexPdfFromUrl',
         inputSchema: z.object({ url: z.string().describe('PDF file URL') }),
         outputSchema: z.object({
             documentsIndexed: z.number(),
@@ -60,6 +60,43 @@ export const indexPdfFlow = ai.defineFlow(
 
             return {
                 documentsIndexed: documents.length,
+            };
+        } catch (err) {
+            return {
+                documentsIndexed: 0,
+                error: err instanceof Error ? err.message : String(err),
+            };
+        }
+    },
+);
+
+export const indexPdfFromBase64Flow = ai.defineFlow(
+    {
+        name: 'indexPdfFromBase64',
+        inputSchema: z.object({
+            base64Pdf: z.string().describe('Base64 encoded PDF file'),
+            filename: z.string().optional(),
+        }),
+        outputSchema: z.object({
+            documentsIndexed: z.number(),
+            error: z.string().optional(),
+            filename: z.string().optional(),
+        }),
+    },
+    async ({ base64Pdf, filename }) => {
+        try {
+            const buffer = Uint8Array.from(Buffer.from(base64Pdf, 'base64'));
+            const metadata = filename ? { filename } : {};
+            const documents = await getDocumentsFromPdfBuffer(ai, buffer, metadata);
+
+            await ai.index({
+                indexer: assistantIndexer,
+                documents,
+            });
+
+            return {
+                documentsIndexed: documents.length,
+                filename,
             };
         } catch (err) {
             return {
@@ -258,13 +295,27 @@ export const getSpeechFromTextFlow = ai.defineFlow(
     }
 );
 
-export const getTextFromPdfFlow = ai.defineFlow(
+export const getTextFromPdfUrlFlow = ai.defineFlow(
     {
-        name: 'getTextFromPdf',
+        name: 'getTextFromPdfUrl',
         inputSchema: z.object({ url: z.string().describe('PDF file URL') }),
         outputSchema: z.string(),
     },
     async ({ url }) => {
         return await extractTextFromPdf(url);
+    }
+);
+
+export const getTextFromBase64PdfFlow = ai.defineFlow(
+    {
+        name: 'getTextFromBase64Pdf',
+        inputSchema: z.object({
+            base64Pdf: z.string().describe('Base64 encoded PDF file'),
+        }),
+        outputSchema: z.string(),
+    },
+    async ({ base64Pdf }) => {
+        const buffer = Uint8Array.from(Buffer.from(base64Pdf, 'base64'));
+        return await extractTextFromPdfBuffer(buffer);
     }
 );
