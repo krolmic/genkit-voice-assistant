@@ -15,9 +15,7 @@ const chunkingConfig = {
 export async function extractTextFromPdf(url: string) {
     const response = await fetch(url);
     const buffer = await response.arrayBuffer();
-    const pdf = await getDocumentProxy(new Uint8Array(buffer));
-    const { text } = await extractText(pdf, { mergePages: true });
-    return text;
+    return await extractTextFromPdfBuffer(new Uint8Array(buffer));
 }
 
 export async function getDocumentsFromPdf(
@@ -28,6 +26,25 @@ export async function getDocumentsFromPdf(
     const chunks = await ai.run('chunk-it', async () => chunk(pdfTxt, chunkingConfig));
     const documents = chunks.map((text) => {
         return Document.fromText(text, { url });
+    });
+    return documents;
+}
+
+export async function extractTextFromPdfBuffer(buffer: Uint8Array) {
+    const pdf = await getDocumentProxy(buffer);
+    const { text } = await extractText(pdf, { mergePages: true });
+    return text;
+}
+
+export async function getDocumentsFromPdfBuffer(
+    ai: GenkitBeta,
+    buffer: Uint8Array,
+    metadata?: Record<string, any>,
+): Promise<Document[]> {
+    const pdfTxt = await ai.run('extract-text', () => extractTextFromPdfBuffer(buffer));
+    const chunks = await ai.run('chunk-it', async () => chunk(pdfTxt, chunkingConfig));
+    const documents = chunks.map((text) => {
+        return Document.fromText(text, metadata ?? {});
     });
     return documents;
 }
