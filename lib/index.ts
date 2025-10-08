@@ -1,6 +1,5 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { openAI } from '@genkit-ai/compat-oai/openai';
-import { googleAI } from '@genkit-ai/google-genai';
 import { config } from 'dotenv';
 import { z } from 'genkit';
 import { genkit } from 'genkit/beta';
@@ -25,7 +24,7 @@ const ai = genkit({
         chroma([
             {
                 collectionName: 'assistant-collection',
-                embedder: googleAI.embedder('gemini-embedding-001'),
+                embedder: openAI.embedder('text-embedding-3-small'),
             },
         ]),
     ],
