@@ -31,13 +31,6 @@ const ai = genkit({
     ],
 });
 
-const assistantIndexer = chromaIndexerRef({
-    collectionName: 'assistant-collection',
-});
-const assistantRetriever = chromaRetrieverRef({
-    collectionName: 'assistant-collection',
-});
-
 const elevenLabsClient = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY! });
 
 export const indexPdfFromUrlFlow = ai.defineFlow(
@@ -54,7 +47,7 @@ export const indexPdfFromUrlFlow = ai.defineFlow(
             const documents = await getDocumentsFromPdf(ai, url);
 
             await ai.index({
-                indexer: assistantIndexer,
+                indexer: chromaIndexerRef,
                 documents,
             });
 
@@ -90,7 +83,7 @@ export const indexPdfFromBase64Flow = ai.defineFlow(
             const documents = await getDocumentsFromPdfBuffer(ai, buffer, metadata);
 
             await ai.index({
-                indexer: assistantIndexer,
+                indexer: chromaIndexerRef,
                 documents,
             });
 
@@ -160,7 +153,7 @@ export const sendSpeechMessageToChatFlow = ai.defineFlow(
         modelId,
     }) => {
         const messageText = await getTextFromSpeech(ai, base64Audio, contentType ?? 'audio/mp3');
-        const docs = await ai.retrieve({ retriever: assistantRetriever, query: messageText });
+        const docs = await ai.retrieve({ retriever: chromaRetrieverRef, query: messageText });
         const chatResponse = await sendMessagesToSession(
             ai,
             sessionId,
@@ -220,7 +213,7 @@ export const sendTextMessageToChatFlow = ai.defineFlow(
         voiceId,
         modelId,
     }) => {
-        const docs = await ai.retrieve({ retriever: assistantRetriever, query: messageText });
+        const docs = await ai.retrieve({ retriever: chromaRetrieverRef, query: messageText });
         const textResponse = await sendMessagesToSession(
             ai,
             sessionId,
