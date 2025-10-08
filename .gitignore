@@ -15,4 +15,5 @@ sessions/
 firebase-debug.log
 firebase-debug.*.log
 .env*
-dist/ 
+dist/
+chroma_data/
