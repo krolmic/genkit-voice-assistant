@@ -1,5 +1,6 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { openAI } from '@genkit-ai/compat-oai/openai';
+import { googleAI } from '@genkit-ai/google-genai';
 import { config } from 'dotenv';
 import { z } from 'genkit';
 import { genkit } from 'genkit/beta';
@@ -17,6 +18,9 @@ if (!process.env.OPENAI_API_KEY) {
 if (!process.env.ELEVENLABS_API_KEY) {
     throw new Error('ELEVENLABS_API_KEY is not set');
 }
+if (!process.env.GOOGLE_GENAI_API_KEY) {
+    throw new Error('GOOGLE_GENAI_API_KEY is not set');
+}
 
 const ai = genkit({
     plugins: [
@@ -24,7 +28,7 @@ const ai = genkit({
         chroma([
             {
                 collectionName: 'assistant-collection',
-                embedder: openAI.embedder('text-embedding-3-small'),
+                embedder: googleAI.embedder('gemini-embedding-001'),
             },
         ]),
     ],
