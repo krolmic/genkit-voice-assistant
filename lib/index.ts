@@ -31,6 +31,10 @@ const ai = genkit({
             {
                 collectionName: assistantCollectionName,
                 embedder: googleAI.embedder('gemini-embedding-001'),
+                clientParams: {
+                    path: "http://localhost:8000",
+                },
+                createCollectionIfMissing: true,
             },
         ]),
     ],
