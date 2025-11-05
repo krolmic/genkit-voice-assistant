@@ -27,6 +27,7 @@ const assistantCollectionName = 'assistant-collection';
 const ai = genkit({
     plugins: [
         openAI({ apiKey: process.env.OPENAI_API_KEY }),
+        googleAI(),
         chroma([
             {
                 collectionName: assistantCollectionName,
