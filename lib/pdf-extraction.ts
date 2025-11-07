@@ -21,11 +21,12 @@ export async function extractTextFromPdf(url: string) {
 export async function getDocumentsFromPdf(
     ai: GenkitBeta,
     url: string,
+    metadata?: Record<string, any>,
 ): Promise<Document[]> {
     const pdfTxt = await ai.run('extract-text', () => extractTextFromPdf(url));
     const chunks = await ai.run('chunk-it', async () => chunk(pdfTxt, chunkingConfig));
     const documents = chunks.map((text) => {
-        return Document.fromText(text, { url });
+        return Document.fromText(text, { url, ...(metadata ?? {}) });
     });
     return documents;
 }

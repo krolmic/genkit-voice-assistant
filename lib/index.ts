@@ -53,15 +53,18 @@ const elevenLabsClient = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_A
 export const indexPdfFromUrlFlow = ai.defineFlow(
     {
         name: 'indexPdfFromUrl',
-        inputSchema: z.object({ url: z.string().describe('PDF file URL') }),
+        inputSchema: z.object({
+            url: z.string().describe('PDF file URL'),
+            metadata: z.record(z.string(), z.any()).optional().describe('Metadata to attach to indexed documents'),
+        }),
         outputSchema: z.object({
             documentsIndexed: z.number(),
             error: z.string().optional(),
         }),
     },
-    async ({ url }) => {
+    async ({ url, metadata }) => {
         try {
-            const documents = await getDocumentsFromPdf(ai, url);
+            const documents = await getDocumentsFromPdf(ai, url, metadata);
 
             await ai.index({
                 indexer: assistantIndexer,
@@ -85,18 +88,16 @@ export const indexPdfFromBase64Flow = ai.defineFlow(
         name: 'indexPdfFromBase64',
         inputSchema: z.object({
             base64Pdf: z.string().describe('Base64 encoded PDF file'),
-            filename: z.string().optional(),
+            metadata: z.record(z.string(), z.any()).optional().describe('Metadata to attach to indexed documents'),
         }),
         outputSchema: z.object({
             documentsIndexed: z.number(),
             error: z.string().optional(),
-            filename: z.string().optional(),
         }),
     },
-    async ({ base64Pdf, filename }) => {
+    async ({ base64Pdf, metadata }) => {
         try {
             const buffer = Uint8Array.from(Buffer.from(base64Pdf, 'base64'));
-            const metadata = filename ? { filename } : {};
             const documents = await getDocumentsFromPdfBuffer(ai, buffer, metadata);
 
             await ai.index({
@@ -106,7 +107,6 @@ export const indexPdfFromBase64Flow = ai.defineFlow(
 
             return {
                 documentsIndexed: documents.length,
-                filename,
             };
         } catch (err) {
             return {
