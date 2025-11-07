@@ -40,12 +40,13 @@ export async function extractTextFromPdfBuffer(buffer: Uint8Array) {
 export async function getDocumentsFromPdfBuffer(
     ai: GenkitBeta,
     buffer: Uint8Array,
+    filename?: string,
     metadata?: Record<string, any>,
 ): Promise<Document[]> {
     const pdfTxt = await ai.run('extract-text', () => extractTextFromPdfBuffer(buffer));
     const chunks = await ai.run('chunk-it', async () => chunk(pdfTxt, chunkingConfig));
     const documents = chunks.map((text) => {
-        return Document.fromText(text, metadata ?? {});
+        return Document.fromText(text, { filename, ...(metadata ?? {}) });
     });
     return documents;
 }

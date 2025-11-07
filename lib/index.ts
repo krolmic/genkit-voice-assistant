@@ -88,6 +88,7 @@ export const indexPdfFromBase64Flow = ai.defineFlow(
         name: 'indexPdfFromBase64',
         inputSchema: z.object({
             base64Pdf: z.string().describe('Base64 encoded PDF file'),
+            filename: z.string().optional().describe('Filename to identify the PDF'),
             metadata: z.record(z.string(), z.any()).optional().describe('Metadata to attach to indexed documents'),
         }),
         outputSchema: z.object({
@@ -95,10 +96,10 @@ export const indexPdfFromBase64Flow = ai.defineFlow(
             error: z.string().optional(),
         }),
     },
-    async ({ base64Pdf, metadata }) => {
+    async ({ base64Pdf, filename, metadata }) => {
         try {
             const buffer = Uint8Array.from(Buffer.from(base64Pdf, 'base64'));
-            const documents = await getDocumentsFromPdfBuffer(ai, buffer, metadata);
+            const documents = await getDocumentsFromPdfBuffer(ai, buffer, filename, metadata);
 
             await ai.index({
                 indexer: assistantIndexer,
