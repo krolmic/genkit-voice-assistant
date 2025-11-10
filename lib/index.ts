@@ -21,6 +21,9 @@ if (!process.env.ELEVENLABS_API_KEY) {
 if (!process.env.GOOGLE_GENAI_API_KEY) {
     throw new Error('GOOGLE_GENAI_API_KEY is not set');
 }
+if (!process.env.CHROMA_URL) {
+    throw new Error('CHROMA_URL is not set');
+}
 
 const assistantCollectionName = 'assistant-collection';
 
@@ -33,7 +36,7 @@ const ai = genkit({
                 collectionName: assistantCollectionName,
                 embedder: googleAI.embedder('gemini-embedding-001'),
                 clientParams: {
-                    path: "http://localhost:8000",
+                    path: process.env.CHROMA_URL,
                 },
                 createCollectionIfMissing: true,
             },
