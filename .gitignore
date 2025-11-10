@@ -14,7 +14,7 @@ node_modules/
 sessions/
 firebase-debug.log
 firebase-debug.*.log
-.env*
+.env
 dist/
 
 # Chroma
